@@ -5,7 +5,7 @@ import {
   InvoiceForm,
   InvoicesTable,
   LatestInvoiceRaw,
-  User,
+  Customer,
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
@@ -216,12 +216,14 @@ export async function fetchFilteredCustomers(query: string) {
   }
 }
 
-export async function getUser(email: string) {
+export async function createCustomer(customer: Customer) {
   try {
-    const user = await sql`SELECT * FROM users WHERE email=${email}`;
-    return user.rows[0] as User;
+    await sql`
+      INSERT INTO customers (id, name, email, image_url)
+      VALUES (${customer.id}, ${customer.name}, ${customer.email}, ${customer.image_url})
+    `;
   } catch (error) {
-    console.error('Failed to fetch user:', error);
-    throw new Error('Failed to fetch user.');
+    console.error('Failed to create customer:', error);
+    throw new Error('Failed to create customer.');
   }
 }

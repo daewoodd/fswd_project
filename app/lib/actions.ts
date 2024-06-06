@@ -5,7 +5,47 @@ import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
+import { hash } from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
+import { AuthError } from 'next-auth'; // Assuming you have a custom AuthError class
+import { createCustomer } from '@/app/lib/data'; // Your function to create a user in the database
+
+const CustomerSchema = z.object({
+  name: z.string(),
+  email: z.string(),
+  image_url: z.string(),
+});
+
+export async function createCustomerData(formData: FormData) {
+  const validatedFields = CustomerSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    image_url: formData.get('image_url'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Customer.',
+    };
+  }
+
+  const { name, email, image_url } = validatedFields.data;
+
+  try {
+    await sql`
+      INSERT INTO customers (name, email, image_url)
+      VALUES (${name}, ${email}, ${image_url})
+    `;
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to Create Customer.',
+    };
+  }
+
+  revalidatePath('/dashboard/customers');
+  redirect('/dashboard/customers');
+}
 
 const FormSchema = z.object({
   id: z.string(),
